@@ -20,14 +20,14 @@ dependencies:
 
 devDependencies:
   '@bazel/bazelisk':
-    specifier: ~1.12.1
-    version: 1.12.1
+    specifier: ~1.19.0
+    version: 1.19.0
   '@types/debug':
     specifier: ^4.1.10
     version: 4.1.10
   '@types/node':
-    specifier: ^20.8.10
-    version: 20.8.10
+    specifier: ^20.11.6
+    version: 20.11.6
   '@types/prettier':
     specifier: ^2.7.1
     version: 2.7.1
@@ -66,8 +66,8 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /@bazel/bazelisk@1.12.1:
-    resolution: {integrity: sha512-TGCwVeIiVeQUP6yLpxAg8yluFOC+tBQnWw5l8lqwMxKhRtOA+WaH1CJKAXeCBAaS2MxohhkXq44zj/7AM+t2jg==}
+  /@bazel/bazelisk@1.19.0:
+    resolution: {integrity: sha512-8PyRGRj/CN286IFHVILgYZ2lQ/JvgQ25ZEgoUAkpSnGmbPdQnKyHtTGEG+Sf0AISFqP5+PPzN162DcizZ/bR9w==}
     hasBin: true
     dev: true
 
@@ -190,8 +190,8 @@ packages:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
     dev: true
 
-  /@types/node@20.8.10:
-    resolution: {integrity: sha512-TlgT8JntpcbmKUFzjhsyhGfP2fsiz1Mv56im6enJ905xG1DAYesxJaeSbGqQmAw8OWPdhyJGhGSQGKRNJ45u9w==}
+  /@types/node@20.11.6:
+    resolution: {integrity: sha512-+EOokTnksGVgip2PbYbr3xnR7kZigh4LbybAfBAw5BpnQ+FqBYUsvCEjYd70IXKlbohQ64mzEYmMtlWUY8q//Q==}
     dependencies:
       undici-types: 5.26.5
     dev: true
