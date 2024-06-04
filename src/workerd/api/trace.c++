@@ -601,7 +601,9 @@ kj::Promise<void> sendTracesToExportedHandler(
     //   in a trace handler has to be done using waitUntil(). So, this seems wrong. Should we
     //   change it so any waitUntil() failure counts as an error? For that matter, arguably *all*
     //   event types should report failure if a waitUntil() throws?
-    metrics.reportFailure(e);
+    auto outcome =
+        context.getLimitEnforcer().getLimitsExceeded().orDefault(EventOutcome::EXCEPTION);
+    metrics.reportFailure(outcome);
 
     // Log JS exceptions (from the initial sendTraces() call) to the JS console, if fiddle is
     // attached. This also has the effect of logging internal errors to syslog. (Note that

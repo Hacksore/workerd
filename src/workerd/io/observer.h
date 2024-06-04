@@ -44,13 +44,15 @@ public:
   // cases where the wrapper created with wrapWorkerInterface() wouldn't otherwise see the
   // exception, e.g. because it has been replaced with an HTTP error response or because it
   // occurred asynchronously.
-  virtual void reportFailure(const kj::Exception& e) {}
+  virtual void reportFailure(EventOutcome outcome) {}
 
   // Wrap the given WorkerInterface with a version that collects metrics. This method may only be
   // called once, and only one method call may be made to the returned interface.
   //
   // The returned reference remains valid as long as the observer and `worker` both remain live.
-  virtual WorkerInterface& wrapWorkerInterface(WorkerInterface& worker) { return worker; }
+  virtual WorkerInterface& wrapWorkerInterface(WorkerInterface& worker, LimitEnforcer& enforcer) {
+    return worker;
+  }
 
   // Wrap an HttpClient so that its usage is counted in the request's subrequest stats.
   virtual kj::Own<WorkerInterface> wrapSubrequestClient(kj::Own<WorkerInterface> client) {

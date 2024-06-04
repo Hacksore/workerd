@@ -156,7 +156,9 @@ kj::Own<WorkerInterface> WorkerEntrypoint::construct(
   obj->init(kj::mv(worker), kj::mv(actor), kj::mv(limitEnforcer),
       kj::mv(ioContextDependency), kj::mv(ioChannelFactory), kj::addRef(*metrics),
       kj::mv(workerTracer));
-  auto& wrapper = metrics->wrapWorkerInterface(*obj);
+
+  auto& wrapper = metrics->wrapWorkerInterface(*obj,
+      KJ_REQUIRE_NONNULL(obj->incomingRequest)->getContext().getLimitEnforcer());
   return kj::attachRef(wrapper, kj::mv(obj), kj::mv(metrics));
 }
 
@@ -259,6 +261,8 @@ kj::Promise<void> WorkerEntrypoint::request(
 
   auto metricsForCatch = kj::addRef(incomingRequest->getMetrics());
 
+  auto limiterOutcome = kj::heap<kj::Maybe<EventOutcome>>(kj::none);
+
   TRACE_EVENT_BEGIN("workerd", "WorkerEntrypoint::request() waiting on context",
       PERFETTO_TRACK_FROM_POINTER(&context),
       PERFETTO_FLOW_FROM_POINTER(this));
@@ -281,7 +285,8 @@ kj::Promise<void> WorkerEntrypoint::request(
                 PERFETTO_FLOW_FROM_POINTER(this));
     proxyTask = kj::mv(deferredProxy.proxyTask);
   }).exclusiveJoin(context.onAbort())
-      .catch_([this,&context](kj::Exception&& exception) mutable -> kj::Promise<void> {
+      // TODO DO NOT COMMIT - tidy
+      .catch_([this,&context,&limiterOutcome = *limiterOutcome](kj::Exception&& exception) mutable -> kj::Promise<void> {
     TRACE_EVENT("workerd", "WorkerEntrypoint::request() catch",
                 PERFETTO_FLOW_FROM_POINTER(this));
     // Log JS exceptions to the JS console, if fiddle is attached. This also has the effect of
@@ -289,6 +294,7 @@ kj::Promise<void> WorkerEntrypoint::request(
     loggedExceptionEarlier = true;
     context.logUncaughtExceptionAsync(UncaughtExceptionSource::REQUEST_HANDLER,
                                       kj::cp(exception));
+    limiterOutcome = context.getLimitEnforcer().getLimitsExceeded();
 
     // Do not allow the exception to escape the isolate without waiting for the output gate to
     // open. Note that in the success path, this is taken care of in `FetchEvent::respondWith()`.
@@ -323,7 +329,8 @@ kj::Promise<void> WorkerEntrypoint::request(
     // If we're being cancelled, we need to make sure `proxyTask` gets canceled.
     proxyTask = kj::none;
   })).catch_([this,wrappedResponse = kj::mv(wrappedResponse),isActor,
-              method, url, &headers, &requestBody, metrics = kj::mv(metricsForCatch)]
+              method, url, &headers, &requestBody, metrics = kj::mv(metricsForCatch),
+              limiterOutcome = kj::mv(limiterOutcome)]
              (kj::Exception&& exception) mutable -> kj::Promise<void> {
     // Don't return errors to end user.
     TRACE_EVENT("workerd", "WorkerEntrypoint::request() exception",
@@ -383,7 +390,7 @@ kj::Promise<void> WorkerEntrypoint::request(
       // Fall back to origin.
 
       // We're catching the exception, but metrics should still indicate an exception.
-      metrics->reportFailure(exception);
+      metrics->reportFailure(limiterOutcome->orDefault(EventOutcome::EXCEPTION));
 
       auto promise = kj::evalNow([&] {
         auto promise = service.get()->request(
@@ -417,7 +424,7 @@ kj::Promise<void> WorkerEntrypoint::request(
 
       // We're catching the exception and replacing it with 5xx, but metrics should still indicate
       // an exception.
-      metrics->reportFailure(exception);
+      metrics->reportFailure(limiterOutcome->orDefault(EventOutcome::EXCEPTION));
 
       // We can't send an error response if a response was already started; we can only drop the
       // connection in that case.

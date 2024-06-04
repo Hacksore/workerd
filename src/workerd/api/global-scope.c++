@@ -421,7 +421,7 @@ kj::Promise<WorkerInterface::AlarmResult> ServiceWorkerGlobalScope::runAlarm(
         LOG_NOSENTRY(WARNING, "Alarm exceeded its allowed execution time");
         // Report alarm handler failure and log it.
         auto e = KJ_EXCEPTION(OVERLOADED, "broken.dropped; worker_do_not_log; jsg.Error: Alarm exceeded its allowed execution time");
-        context.getMetrics().reportFailure(e);
+        context.getMetrics().reportFailure(EventOutcome::EXCEEDED_CPU);
 
         // We don't want the handler to keep running after timeout.
         context.abort(kj::mv(e));
@@ -447,7 +447,7 @@ kj::Promise<WorkerInterface::AlarmResult> ServiceWorkerGlobalScope::runAlarm(
       auto& persistent = KJ_ASSERT_NONNULL(actor.getPersistent());
       persistent.cancelDeferredAlarmDeletion();
 
-      context.getMetrics().reportFailure(e);
+      context.getMetrics().reportFailure(EventOutcome::EXCEPTION);
 
       // This will include the error in inspector/tracers and log to syslog if internal.
       context.logUncaughtExceptionAsync(UncaughtExceptionSource::ALARM_HANDLER, kj::mv(e));
